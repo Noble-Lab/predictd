@@ -1,0 +1,46 @@
+#! /usr/bin/env bash
+
+#e.g. s3://data-tdurham/fetalspinalcord_analysis/signal_files/fetal_spinal_cord_filemap.txt
+filemap_url=$1
+#e.g. s3://data-tdurham/fetalspinalcord_analysis/
+out_root_url=$2
+working_dir=/data/tmp_lowdata
+
+if [ -z "$filemap_url" ] || [ -z $out_root_url ]
+then
+    echo "Usage:  new_ct_demo.sh s3://file_map_bucket/file/map/key s3://output_bucket/out/root/key"
+    exit 1
+fi
+
+#1) Point the code to the file map with file_url\tct\tassay and assemble the individual
+#   data sets into a single bedgraph file.
+echo "Assembling cell type data sets"
+python /root/predictd/assemble_new_ct_datasets.py --file_map=$filemap_url --working_dir=$working_dir --windows_file=s3://predictd/reference_data/hg19.25bp.windows.bed.gz --procnum=4
+
+#2) Upload the assembled data to AWS S3 in manageable chunks
+echo "Uploading assembled data to S3"
+bdg_path=`ls ${working_dir}/tmp*.bdg.gz`
+assembled_data_url_base=$out_root_url/signal_data/assembled_data
+python /root/predictd/upload_genome_file_in_parts.py --input_bdg=${bdg_path[0]} --out_url_base=$assembled_data_url_base --lines_per_file=1000000
+
+#3) Use the data to create an RDD for imputation.
+echo "Transforming assembled data to rdd tensor data structure"
+new_rdd_url=$out_root_url/fetalspinalcord_data.hars_with_encodePilots.25bp.rdd.pickle
+spark-submit /root/predictd/assembled_data_to_rdd.py --data_parts_url_base=$assembled_data_url_base --coords_bed=s3://predictd/reference_data/hars_with_encodePilots.25bp.windows.bed.gz --out_url=$new_rdd_url
+
+#4) Train model
+echo "Training PREDICTD model"
+model_out=$out_root_url/predictd_out
+strip_prot=${model_out#s3://}
+model_out_bucket=${strip_prot%%/*}
+model_out_key=${strip_prot#*/}
+roadmap_data_root=s3://predictd/Observed
+roadmap_data_rdd=$roadmap_data_root/training_data.encodePilots_and_nchars.rdd.pickle
+
+spark-submit /root/predictd/train_model.py --data_url=$roadmap_data_rdd --addl_data_url=$new_rdd_url --run_bucket=$model_out_bucket --out_root=$model_out_key --fold_idx=0 --valid_fold_idx=0 --latent_factors=100 --learning_rate=0.00450541331031 --beta1=0.9 --beta2=0.999 --epsilon=1e-8 --batch_size=5000 --win_per_slice=1000 --rc=4.79186469703 --ra=8.7565107627e-27 --ri=8.7565107627e-27 --rbc=0 --rba=0 --rbi=0 --stop_winsize=15 --stop_winspacing=5 --min_iters=50 --lrate_search_num=3 --iters_per_mse=3 --folds_fname=s3://predictd/reference_data/folds.5.8.pickle --training_fraction=0.01 --factor_init_seed=132 --no_browser_tracks
+
+#spark-submit /root/predictd/train_bags.py --data_url=$roadmap_data_rdd --addl_data_url=$new_rdd_url --run_bucket=$model_out_bucket --out_root=$model_out_key --fold_idx=0 --latent_factors=100 --learning_rate=0.005 --beta1=0.9 --beta2=0.999 --epsilon=1e-8 --batch_size=5000 --win_per_slice=1000 --rc=3.66 --ra=1.23e-7 --ri=1.23e-5 --rbc=0 --rba=0 --rbi=0 --stop_winsize=15 --stop_winspacing=5 --min_iters=50 --lrate_search_num=3 --iters_per_mse=3 --folds_fname=folds.5.8.pickle --training_fraction=0.01 --factor_init_seed=132 --no_browser_tracks
+
+#5) Impute data
+echo "Generating whole genome imputed tracks"
+spark-submit /root/predictd/impute_data.py --model_url=$model_out/hyperparameters.pickle --model_data_idx=$model_out/data_idx.pickle --addl_agg_coord_order=$assembled_data_url_base.coord_order.pickle --addl_agg_data_idx=${assembled_data_url_base%/*}/data_idx.pickle --agg_data_idx=${roadmap_data_rdd%.pickle}.data_idx.pickle --agg_coord_order=$roadmap_data_root/training_data.alldata-parts.column_coords.pickle --agg_parts=$roadmap_data_root/training_data.alldata-parts --cts_to_impute=Fetal_Spinal_Cord --out_root_url=$model_out/imputed_tracks --rdd_sort --parts_at_once=15 --coords_bed=s3://predictd/reference_data/encodePilotRegions.hg19.sorted.bed --ignore_test_sets
