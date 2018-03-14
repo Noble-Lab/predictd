@@ -133,7 +133,7 @@ def load_custom_save(rdd_url):
 
 def load_saved_rdd(rdd_url):
     rdd_bucket, rdd_key = s3_library.parse_s3_url(rdd_url)
-    if s3_library.S3.get_bucket(rdd_bucket).get_key(os.path.join(rdd_key, 'num_parts.pickle')):
+    if s3_library.S3.get_bucket(rdd_bucket, headers={'x-amz-request-payer':'requester'}).get_key(os.path.join(rdd_key, 'num_parts.pickle'), headers={'x-amz-request-payer':'requester'}):
         return load_custom_save(rdd_url)
     else:
         return sc.pickleFile(rdd_url.replace('s3://', 's3n://'))
@@ -175,7 +175,7 @@ def save_rdd_as_pickle(rdd, out_url, num_partitions=None, custom_save=True):
                 bucket_txt, key_txt = parse_s3_url(out_url)
                 while s3_library.glob_keys(bucket_txt, key_txt+'*'):
                     print('Found files that should be deleted before next attempt. Deleting.')
-                    cmd = ['aws', 's3', 'rm', '--quiet', '--recursive', out_url.replace('s3n://', 's3://')]
+                    cmd = ['aws', 's3', 'rm', '--quiet', '--recursive', out_url.replace('s3n://', 's3://'), '--request-payer']
                     subprocess.check_call(cmd)
                     time.sleep(60)
                     for key in s3_library.glob_keys(bucket_txt, key_txt+'*'):
@@ -302,7 +302,7 @@ def load_data(pickle_url, win_per_slice=None, fold_idx=-1, valid_fold_idx=-1, tr
 def load_model(model_url, load_data_too=False):
     bucket_txt, key_txt = s3_library.parse_s3_url(model_url)
     print(bucket_txt, key_txt)
-    if not s3_library.S3.get_bucket(bucket_txt).get_key(os.path.join(key_txt, 'ct_factors.pickle')):
+    if not s3_library.S3.get_bucket(bucket_txt, headers={'x-amz-request-payer':'requester'}).get_key(os.path.join(key_txt, 'ct_factors.pickle'), headers={'x-amz-request-payer':'requester'}):
         return load_model_old(model_url, load_data_too=load_data_too)
     else:
         gmean = s3_library.get_pickle_s3(bucket_txt, os.path.join(key_txt, 'gmean.pickle'))
@@ -345,9 +345,9 @@ def load_model_old(model_url, load_data_too=False):
     assay, assay_bias = s3_library.get_pickle_s3(bucket_txt, os.path.join(key_txt, '3D_model_assay_params.pickle'))
     genome_params = load_saved_rdd(os.path.join(model_url, '3D_model_genome_params.rdd.pickle')).persist(storageLevel=StorageLevel.MEMORY_AND_DISK_SER)
     #load relevant command line parameters
-    cmd_key = s3_library.S3.get_bucket(bucket_txt).get_key(os.path.join(key_txt, 'command_line.txt'))
+    cmd_key = s3_library.S3.get_bucket(bucket_txt, headers={'x-amz-request-payer':'requester'}).get_key(os.path.join(key_txt, 'command_line.txt'), headers={'x-amz-request-payer':'requester'})
     if not cmd_key:
-        cmd_key = s3_library.S3.get_bucket(bucket_txt).get_key(os.path.join(os.path.dirname(key_txt), 'command_line.txt'))
+        cmd_key = s3_library.S3.get_bucket(bucket_txt, headers={'x-amz-request-payer':'requester'}).get_key(os.path.join(os.path.dirname(key_txt), 'command_line.txt'), headers={'x-amz-request-payer':'requester'})
     cmd_line = dict([elt.strip().split('=') if '=' in elt else [elt.strip, True] for elt in shlex.split(cmd_key.get_contents_as_string(headers={'x-amz-request-payer':'requester'}))])
     rc = float(cmd_line.get('--rc', 2.88e-4))
     ra = float(cmd_line.get('--ra', 5.145e-11))
@@ -463,8 +463,8 @@ def print_iter_errs(iter_errs, out_bucket, out_key,
     iter_errs_str = header_line
     for idx, elt in enumerate(iter_errs):
         iter_errs_str += ('\t'.join([str(idx)] + [str(elt[i]) for i in range(len(elt))]) + '\n')
-    bucket = s3_library.S3.get_bucket(out_bucket)
-    key = bucket.new_key(out_key)
+    bucket = s3_library.S3.get_bucket(out_bucket, headers={'x-amz-request-payer':'requester'})
+    key = bucket.new_key(out_key, headers={'x-amz-request-payer':'requester'})
     key.set_contents_from_string(iter_errs_str, headers={'x-amz-request-payer':'requester'})
 
 def _calc_mse_helper(gtotal_elt, ct_assay, ct_assay_bias, ri, rbi, subsets=None):
@@ -1619,7 +1619,7 @@ def train_predictd(gtotal, ct, rc, ct_bias, rbc, assay, ra, assay_bias, rba, ri,
     #set checkpoint dir
     if STORAGE == 'S3':
         sc.setCheckpointDir(os.path.join('s3n://{!s}'.format(run_bucket), out_root, 'checkpoints'))
-        run_bucket = s3_library.S3.get_bucket(run_bucket)
+        run_bucket = s3_library.S3.get_bucket(run_bucket, headers={'x-amz-request-payer':'requester'})
     elif STORAGE == 'BLOB':
         sc.setCheckpointDir(os.path.join('wasbs://{!s}@imputationstoretim.blob.core.windows.net'.format(run_bucket), out_root, 'checkpoints'))
 
@@ -1967,10 +1967,10 @@ def train_predictd(gtotal, ct, rc, ct_bias, rbc, assay, ra, assay_bias, rba, ri,
             #If a new minimum was found in the just-saved checkpoint, then delete the previous minimum
             if checkpoint_to_delete:
                 if STORAGE == 'S3':
-                    cmd = ['aws', 's3', 'rm', '--quiet', '--recursive', checkpoint_to_delete]
+                    cmd = ['aws', 's3', 'rm', '--quiet', '--recursive', checkpoint_to_delete, '--request-payer']
                     subprocess.check_call(cmd)
                     #remove associated parameters
-                    cmd = ['aws', 's3', 'rm', '--quiet', '--recursive', checkpoint_to_delete.rstrip('/') + '.factors/']
+                    cmd = ['aws', 's3', 'rm', '--quiet', '--recursive', checkpoint_to_delete.rstrip('/') + '.factors/', '--request-payer']
                     subprocess.check_call(cmd)
                 elif STORAGE == 'BLOB':
                     raise Exception('Blob Storage no longer supported; this code needs work.')
@@ -1988,7 +1988,7 @@ def train_predictd_ct_genome(gtotal, ct, rc, ct_bias, rbc, assay, ra, assay_bias
     #set checkpoint dir
     if STORAGE == 'S3':
         sc.setCheckpointDir(os.path.join('s3n://{!s}'.format(run_bucket), out_root, 'checkpoints'))
-        run_bucket = s3_library.S3.get_bucket(run_bucket)
+        run_bucket = s3_library.S3.get_bucket(run_bucket, headers={'x-amz-request-payer':'requester'})
     elif STORAGE == 'BLOB':
         sc.setCheckpointDir(os.path.join('wasbs://{!s}@imputationstoretim.blob.core.windows.net'.format(run_bucket), out_root, 'checkpoints'))
 
@@ -2319,10 +2319,10 @@ def train_predictd_ct_genome(gtotal, ct, rc, ct_bias, rbc, assay, ra, assay_bias
             #If a new minimum was found in the just-saved checkpoint, then delete the previous minimum
             if checkpoint_to_delete:
                 if STORAGE == 'S3':
-                    cmd = ['aws', 's3', 'rm', '--quiet', '--recursive', checkpoint_to_delete]
+                    cmd = ['aws', 's3', 'rm', '--quiet', '--recursive', checkpoint_to_delete, '--request-payer']
                     subprocess.check_call(cmd)
                     #remove associated parameters
-                    cmd = ['aws', 's3', 'rm', '--quiet', '--recursive', checkpoint_to_delete.rstrip('/') + '.factors/']
+                    cmd = ['aws', 's3', 'rm', '--quiet', '--recursive', checkpoint_to_delete.rstrip('/') + '.factors/', '--request-payer']
                     subprocess.check_call(cmd)
                 elif STORAGE == 'BLOB':
                     container, blob = parse_azure_url(checkpoint_to_delete)[:2]
@@ -2417,8 +2417,8 @@ def _compile_bdg_and_upload(ctassay_part, out_bucket, out_root, bdg_path, make_p
             time.sleep(numpy.random.randint(10,20))
         else:
             #get chrom_sizes
-            s3_library.S3.get_bucket('predictd').get_key('reference_data/hg19.chrom.sizes').get_contents_to_filename(chrom_sizes_path, headers={'x-amz-request-payer':'requester'})
-            s3_library.S3.get_bucket('predictd').get_key('reference_data/hg19.chrom.bed').get_contents_to_filename(chrom_bed_path, headers={'x-amz-request-payer':'requester'})
+            s3_library.S3.get_bucket('predictd', headers={'x-amz-request-payer':'requester'}).get_key('reference_data/hg19.chrom.sizes', headers={'x-amz-request-payer':'requester'}).get_contents_to_filename(chrom_sizes_path, headers={'x-amz-request-payer':'requester'})
+            s3_library.S3.get_bucket('predictd', headers={'x-amz-request-payer':'requester'}).get_key('reference_data/hg19.chrom.bed', headers={'x-amz-request-payer':'requester'}).get_contents_to_filename(chrom_bed_path, headers={'x-amz-request-payer':'requester'})
             os.rmdir(chrom_sizes_path+'.lock')
     for ct_name, assay_name in ctassay_part:
         for bdg_type in ['imp', 'obs']:
@@ -2446,7 +2446,7 @@ def _compile_bdg_and_upload(ctassay_part, out_bucket, out_root, bdg_path, make_p
                 bedGraphToBigWig(out_bdg, chrom_sizes_path, out_bw)
                 os.remove(out_bdg)
 
-            out_key = s3_library.S3.get_bucket(out_bucket).new_key(os.path.join(out_root, os.path.basename(out_bw)))
+            out_key = s3_library.S3.get_bucket(out_bucket, headers={'x-amz-request-payer':'requester'}).new_key(os.path.join(out_root, os.path.basename(out_bw)), headers={'x-amz-request-payer':'requester'})
             out_key.set_contents_from_filename(out_bw, headers={'x-amz-request-payer':'requester'})
             if make_public is True:
                 out_key.make_public()
@@ -2468,7 +2468,7 @@ def _compile_bdg_batch_and_upload(ctassay_part, out_bucket, out_root, bdg_path, 
             time.sleep(numpy.random.randint(10,20))
         else:
             #get chrom_bed
-            s3_library.S3.get_bucket('predictd').get_key('reference_data/hg19.chrom.bed').get_contents_to_filename(chrom_bed_path, headers={'x-amz-request-payer':'requester'})
+            s3_library.S3.get_bucket('predictd', headers={'x-amz-request-payer':'requester'}).get_key('reference_data/hg19.chrom.bed', headers={'x-amz-request-payer':'requester'}).get_contents_to_filename(chrom_bed_path, headers={'x-amz-request-payer':'requester'})
             os.rmdir(chrom_bed_path+'.lock')
     for ct_name, assay_name in ctassay_part:
         for bdg_type in ['imp', 'obs']:
@@ -2484,7 +2484,7 @@ def _compile_bdg_batch_and_upload(ctassay_part, out_bucket, out_root, bdg_path, 
             chain = unixcat[bdg_paths] | unixpaste[os.path.join(tmpdir, 'bdg_coords.txt'), '-'] | bedtools['intersect', '-wa', '-a', 'stdin', '-b', chrom_bed_path, '-f', '1.0'] | unixgzip > out_bdg
             chain()
 
-            out_key = s3_library.S3.get_bucket(out_bucket).new_key(os.path.join(out_root, ct_name, assay_name, os.path.basename(out_bdg)))
+            out_key = s3_library.S3.get_bucket(out_bucket, headers={'x-amz-request-payer':'requester'}).new_key(os.path.join(out_root, ct_name, assay_name, os.path.basename(out_bdg)), headers={'x-amz-request-payer':'requester'})
             out_key.set_contents_from_filename(out_bdg, headers={'x-amz-request-payer':'requester'})
             os.remove(out_bdg)
             local['rm']('-f', bdg_paths)
@@ -2499,7 +2499,7 @@ def _compiled_bdg_batches_to_bigwig(ctassay, bdg_batches_url_glob, out_bw_url, m
             time.sleep(numpy.random.randint(10,20))
         else:
             #get chrom_sizes
-            s3_library.S3.get_bucket('predictd').get_key('reference_data/hg19.chrom.sizes').get_contents_to_filename(chrom_sizes_path, headers={'x-amz-request-payer':'requester'})
+            s3_library.S3.get_bucket('predictd', headers={'x-amz-request-payer':'requester'}).get_key('reference_data/hg19.chrom.sizes', headers={'x-amz-request-payer':'requester'}).get_contents_to_filename(chrom_sizes_path, headers={'x-amz-request-payer':'requester'})
             os.rmdir(chrom_sizes_path+'.lock')
 
     ct_name, assay_name = ctassay
@@ -2517,7 +2517,7 @@ def _compiled_bdg_batches_to_bigwig(ctassay, bdg_batches_url_glob, out_bw_url, m
     bedGraphToBigWig(compiled_bdg, chrom_sizes_path, out_bw)
 
     out_bucket_txt, out_key_txt = s3_library.parse_s3_url(out_bw_url.format(ct_name, assay_name, 'imp'))
-    out_key = s3_library.S3.get_bucket(out_bucket_txt).new_key(out_key_txt)
+    out_key = s3_library.S3.get_bucket(out_bucket_txt, headers={'x-amz-request-payer':'requester'}).new_key(out_key_txt, headers={'x-amz-request-payer':'requester'})
     out_key.set_contents_from_filename(out_bw, headers={'x-amz-request-payer':'requester'})
     if make_public is True:
         out_key.make_public()

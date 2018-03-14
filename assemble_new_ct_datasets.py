@@ -95,7 +95,7 @@ class ExcProc(mp.Process):
                     if pth.startswith('s3://'):
                         bucket_txt, key_txt = s3_library.parse_s3_url(pth)
                         local_pth = os.path.join(self.out_dir, os.path.basename(pth))
-                        s3_library.S3.get_bucket(bucket_txt).get_key(key_txt).get_contents_to_filename(local_pth, headers={'x-amz-request-payer':'requester'})
+                        s3_library.S3.get_bucket(bucket_txt, headers={'x-amz-request-payer':'requester'}).get_key(key_txt, headers={'x-amz-request-payer':'requester'}).get_contents_to_filename(local_pth, headers={'x-amz-request-payer':'requester'})
                         pth = local_pth
                     paths[idx] = (paths[idx][0], pth)
 #                if sum(inits) == 0:
@@ -141,7 +141,7 @@ def get_windows_file(path, working_dir):
                     path = path.split('/')
                     bucket_txt = path[2]
                     key_txt = '/'.join(path[3:])
-                    key = s3_library.S3.get_bucket(bucket_txt).get_key(key_txt)
+                    key = s3_library.S3.get_bucket(bucket_txt, headers={'x-amz-request-payer':'requester'}).get_key(key_txt, headers={'x-amz-request-payer':'requester'})
                     key.get_contents_to_filename(tmp_path, headers={'x-amz-request-payer':'requester'})
                 else:
                     shutil.copy(path, tmp_path)
@@ -204,7 +204,7 @@ def _make_windowed_bdg(path, s3_root, windows_path, overwrite=False, apply_arcsi
                 data_out.write(compressor.flush(zlib.Z_FINISH))
     if transformed_url.startswith('s3://'):
         bucket_txt, key_txt = s3_library.parse_s3_url(transformed_url)
-        key = s3_library.S3.get_bucket(bucket_txt).get_key(key_txt)
+        key = s3_library.S3.get_bucket(bucket_txt, headers={'x-amz-request-payer':'requester'}).get_key(key_txt, headers={'x-amz-request-payer':'requester'})
         key.copy(bucket_txt, key_txt + '.gz')
         key.delete()
     else:

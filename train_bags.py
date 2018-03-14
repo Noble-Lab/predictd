@@ -35,9 +35,9 @@ if __name__ == "__main__":
     cmd_line_path = os.path.join(out_root, 'command_line.txt')
     cmd_line_txt = ' '.join(sys.argv) + '\n'
     if args.data_url.startswith('s3'):
-        bucket = s3_library.S3.get_bucket(args.run_bucket)
-        key = bucket.new_key(cmd_line_path)
-        key.set_contents_from_string(cmd_line_txt)
+        bucket = s3_library.S3.get_bucket(args.run_bucket, headers={'x-amz-request-payer':'requester'})
+        key = bucket.new_key(cmd_line_path, headers={'x-amz-request-payer':'requester'})
+        key.set_contents_from_string(cmd_line_txt, headers={'x-amz-request-payer':'requester'})
         spark_model.pl.STORAGE = 'S3'
 #    elif args.data_url.startswith('wasb'):
 #        azure_library.load_blob_from_text(args.run_bucket, cmd_line_path, cmd_line_txt)
@@ -71,7 +71,7 @@ if __name__ == "__main__":
 
         idx_args = copy.deepcopy(args)
         valid_cmd_line_path = ''
-        while not valid_cmd_line_path or s3_library.S3.get_bucket(args.run_bucket).get_key(valid_cmd_line_path):
+        while not valid_cmd_line_path or s3_library.S3.get_bucket(args.run_bucket, headers={'x-amz-request-payer':'requester'}).get_key(valid_cmd_line_path, headers={'x-amz-request-payer':'requester'}):
             valid_idx = rs2.randint(8)
             idx_args.out_root = os.path.join(out_root, 'valid_fold{!s}'.format(valid_idx))
             valid_cmd_line_path = os.path.join(idx_args.out_root, 'command_line.txt')
@@ -97,9 +97,9 @@ if __name__ == "__main__":
             continue
 
         if idx_args.data_url.startswith('s3'):
-            bucket = s3_library.S3.get_bucket(idx_args.run_bucket)
-            key = bucket.new_key(valid_cmd_line_path)
-            key.set_contents_from_string(valid_cmd_line_txt)
+            bucket = s3_library.S3.get_bucket(idx_args.run_bucket, headers={'x-amz-request-payer':'requester'})
+            key = bucket.new_key(valid_cmd_line_path, headers={'x-amz-request-payer':'requester'})
+            key.set_contents_from_string(valid_cmd_line_txt, headers={'x-amz-request-payer':'requester'})
 #        elif idx_args.data_url.startswith('wasb'):
 #            azure_library.load_blob_from_text(idx_args.run_bucket, valid_cmd_line_path, valid_cmd_line_txt)
         else:

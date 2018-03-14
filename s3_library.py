@@ -43,7 +43,7 @@ def parse_s3_url(s3_url):
 def get_pickle_s3(bucketname, keyname):
     '''Get a pickled file from AWS S3.
     '''
-    key = S3.get_bucket(bucketname).get_key(keyname)
+    key = S3.get_bucket(bucketname, headers={'x-amz-request-payer':'requester'}).get_key(keyname, headers={'x-amz-request-payer':'requester'})
     with NamedTemporaryFile(dir=TMPDIR) as tmp:
         key.get_contents_to_file(tmp, headers={'x-amz-request-payer':'requester'})
         tmp.seek(0)
@@ -54,12 +54,12 @@ def set_pickle_s3(bucketname, keyname, obj):
     '''Pickle and write an object to AWS S3.
     '''
     try:
-        bucket = S3.get_bucket(bucketname)
+        bucket = S3.get_bucket(bucketname, headers={'x-amz-request-payer':'requester'})
     except boto.exception.S3ResponseError:
-        bucket = S3.create_bucket(bucketname)
-    key = bucket.get_key(keyname)
+        bucket = S3.create_bucket(bucketname, headers={'x-amz-request-payer':'requester'})
+    key = bucket.get_key(keyname, headers={'x-amz-request-payer':'requester'})
     if key is None:
-        key = bucket.new_key(keyname)
+        key = bucket.new_key(keyname, headers={'x-amz-request-payer':'requester'})
 #    key.set_contents_from_string(pickle.dumps(obj), headers={'x-amz-request-payer':'requester'})
     with NamedTemporaryFile(dir=TMPDIR) as tmp:
         pickle.dump(obj, tmp)
@@ -70,7 +70,7 @@ def glob_keys(bucketname, glob_str, just_names=False):
     '''Query keys for the specified bucket and return keys with 
     names matching the glob string.
     '''
-    bucket = S3.get_bucket(bucketname)
+    bucket = S3.get_bucket(bucketname, headers={'x-amz-request-payer':'requester'})
     path_levels = glob_str.split('/')
     return glob_keys_helper(bucket.list(prefix=path_levels[0], delimiter='/'), path_levels, 0, just_names=just_names)
 
@@ -82,7 +82,7 @@ def glob_keys_helper(prefixes, glob_levels, level_idx, just_names=False):
                 if just_names is True:
                     key = elt.name
                 else:
-                    key = elt.bucket.get_key(elt.name)
+                    key = elt.bucket.get_key(elt.name, headers={'x-amz-request-payer':'requester'})
                 if key:
                     globbed.append(key)
             else:
@@ -95,7 +95,7 @@ def glob_buckets(glob_str):
     '''Find buckets with names matching the provided glob string.
     '''
     globbed = []
-    for bucket in S3.get_all_buckets():
+    for bucket in S3.get_all_buckets(headers={'x-amz-request-payer':'requester'}):
         if fnmatch.fnmatch(bucket.name, glob_str):
             globbed.append(bucket)
     return globbed

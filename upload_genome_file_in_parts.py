@@ -27,7 +27,7 @@ def write_lines(lines, out_path):
         else:
             out.write(compressor.flush(zlib.Z_FINISH))
     out_bucket_txt, out_key_txt = s3_library.parse_s3_url(out_path)
-    out_key = s3_library.S3.get_bucket(out_bucket_txt).get_key(out_key_txt)
+    out_key = s3_library.S3.get_bucket(out_bucket_txt, headers={'x-amz-request-payer':'requester'}).get_key(out_key_txt, headers={'x-amz-request-payer':'requester'})
     out_key.copy(out_bucket_txt, out_key_txt + '.gz')
     out_key.delete()
 
@@ -42,7 +42,7 @@ if __name__ == "__main__":
     part_no = 0
     out_path_base = args.out_url_base + '.part{!s}.txt'
     bucket_txt, key_txt = s3_library.parse_s3_url(args.out_url_base)
-    out_bucket = s3_library.S3.get_bucket(bucket_txt)
+    out_bucket = s3_library.S3.get_bucket(bucket_txt, headers={'x-amz-request-payer':'requester'})
 
     #generate the data_idx.pickle for these data based on the file_map + coords
     fmap_w_coords_path = glob.glob(os.path.join(os.path.dirname(args.input_bdg), '*.w_coords.pickle'))[0]
@@ -50,11 +50,11 @@ if __name__ == "__main__":
         fmap_w_coords = pickle.load(pickle_in)
     data_idx = {fmap_w_coords[i][0]:(fmap_w_coords[i][1], fmap_w_coords[i][2], tuple([int(elt) for elt in fmap_w_coords[i][3:5]])) 
                 for i in range(fmap_w_coords.shape[0])}
-    data_idx_key = out_bucket.new_key(os.path.join(os.path.dirname(key_txt), 'data_idx.pickle'))
+    data_idx_key = out_bucket.new_key(os.path.join(os.path.dirname(key_txt), 'data_idx.pickle'), headers={'x-amz-request-payer':'requester'})
     data_idx_key.set_contents_from_string(pickle.dumps(data_idx), headers={'x-amz-request-payer':'requester'})
 
     #save the column coordinates to s3
-    coord_key = out_bucket.new_key(key_txt + '.coord_order.pickle')
+    coord_key = out_bucket.new_key(key_txt + '.coord_order.pickle', headers={'x-amz-request-payer':'requester'})
     coord_key.set_contents_from_filename(args.input_bdg.replace('.bdg.gz', '.coord_order.pickle'), headers={'x-amz-request-payer':'requester'})
 
     #save the data in parts

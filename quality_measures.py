@@ -164,7 +164,7 @@ if __name__ == "__main__":
         else:
             subsets_bucket = data_idx_bucket
             subsets_key = os.path.join(os.path.dirname(data_idx_key), args.fold_name)
-            if s3_library.S3.get_bucket(subsets_bucket).get_key(subsets_key):
+            if s3_library.S3.get_bucket(subsets_bucket, headers={'x-amz-request-payer':'requester'}).get_key(subsets_key, headers={'x-amz-request-payer':'requester'}):
                 subsets = s3_library.get_pickle_s3(data_idx_bucket, subsets_key)[args.fold_idx]
     else:
         #ignore subsets and just calc quality metrics for all experiments in data_idx
@@ -193,7 +193,7 @@ if __name__ == "__main__":
         window_regions_name = 'hars_with_encodePilots.25bp.windows.bed.gz'
     window_regions_path = os.path.join(working_dir, window_regions_name)
     if not os.path.exists(window_regions_path):
-        s3_library.S3.get_bucket('predictd').get_key(os.path.join('reference_data', window_regions_name)).get_contents_to_filename(window_regions_path, headers={'x-amz-request-payer':'requester'})
+        s3_library.S3.get_bucket('predictd', headers={'x-amz-request-payer':'requester'}).get_key(os.path.join('reference_data', window_regions_name), headers={'x-amz-request-payer':'requester'}).get_contents_to_filename(window_regions_path, headers={'x-amz-request-payer':'requester'})
     with gzip.open(window_regions_path) as lines_in:
         window_set = set()
         for line in lines_in:
@@ -319,7 +319,7 @@ if __name__ == "__main__":
         peaks_key = 'Observed/peak_calls/{!s}-{!s}.sorted.counted.narrowPeak.gz'.format(elt[0], elt[1].replace('H2AZ', 'H2A'))
         peaks_tmp = os.path.join(working_dir, os.path.basename(peaks_key))
         try:
-            s3_library.S3.get_bucket('predictd').get_key(peaks_key).get_contents_to_filename(peaks_tmp, headers={'x-amz-request-payer':'requester'})
+            s3_library.S3.get_bucket('predictd', headers={'x-amz-request-payer':'requester'}).get_key(peaks_key, headers={'x-amz-request-payer':'requester'}).get_contents_to_filename(peaks_tmp, headers={'x-amz-request-payer':'requester'})
         except AttributeError:
             catchpeakobs = None
         else:
@@ -348,4 +348,4 @@ if __name__ == "__main__":
             out_key_full = os.path.join(os.path.dirname(out_key), out_name)
         else:
             out_bucket, out_key_full = s3_library.parse_s3_url(args.out_name)
-        s3_library.S3.get_bucket(out_bucket).new_key(out_key_full).set_contents_from_filename(os.path.join(working_dir, out_name), headers={'x-amz-request-payer':'requester'})
+        s3_library.S3.get_bucket(out_bucket, headers={'x-amz-request-payer':'requester'}).new_key(out_key_full, headers={'x-amz-request-payer':'requester'}).set_contents_from_filename(os.path.join(working_dir, out_name), headers={'x-amz-request-payer':'requester'})

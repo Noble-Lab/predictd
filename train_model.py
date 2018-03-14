@@ -148,7 +148,7 @@ def train_consolidated(args):
 #        if key:
 #            key.delete()
     checkpoints_url = 's3://{!s}/{!s}'.format(args.run_bucket, os.path.join(args.out_root, 'checkpoints/'))
-    cmd = ['aws', 's3', 'rm', checkpoints_url, '--recursive']
+    cmd = ['aws', 's3', 'rm', checkpoints_url, '--recursive', '--request-payer']
     subprocess.check_call(cmd)
 
     return final_mse[pl.MSE_VALID]
@@ -228,8 +228,8 @@ if __name__ == "__main__":
     pl.sc = sc
     if args.data_url.startswith('s3'):
         if not s3_library.glob_keys(args.run_bucket, os.path.join(args.out_root, 'command_line.txt')):
-            bucket = s3_library.S3.get_bucket(args.run_bucket)
-            key = bucket.new_key(os.path.join(args.out_root, 'command_line.txt'))
+            bucket = s3_library.S3.get_bucket(args.run_bucket, headers={'x-amz-request-payer':'requester'})
+            key = bucket.new_key(os.path.join(args.out_root, 'command_line.txt'), headers={'x-amz-request-payer':'requester'})
             key.set_contents_from_string(' '.join(sys.argv) + '\n', headers={'x-amz-request-payer':'requester'})
         elif not args.restart:
             raise Exception('Error: Output directory already exists.')

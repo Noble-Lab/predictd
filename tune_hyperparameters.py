@@ -43,8 +43,8 @@ def main(job_id, params):
 
     if args.data_url.startswith('s3'):
         #write command line to S3
-        bucket = s3_library.S3.get_bucket(args.run_bucket)
-        key = bucket.new_key(os.path.join(args.out_root, 'command_line.txt'))
+        bucket = s3_library.S3.get_bucket(args.run_bucket, headers={'x-amz-request-payer':'requester'})
+        key = bucket.new_key(os.path.join(args.out_root, 'command_line.txt'), headers={'x-amz-request-payer':'requester'})
         to_write = [os.path.join(os.path.dirname(__file__), 'train_model.py')]
         to_write += ['--{!s}={!s}'.format(*elt) for elt in args.__dict__.items() 
                      if (not isinstance(elt[1], bool)) and 
@@ -73,12 +73,12 @@ if __name__ == "__main__":
     if args.data_url.startswith('s3'):
         if not s3_library.glob_keys(args.run_bucket, os.path.join(args.out_root, 'command_line.txt')):
             #save the command line to S3
-            bucket = s3_library.S3.get_bucket(args.run_bucket)
-            key = bucket.new_key(os.path.join(args.out_root, 'command_line.txt'))
+            bucket = s3_library.S3.get_bucket(args.run_bucket, headers={'x-amz-request-payer':'requester'})
+            key = bucket.new_key(os.path.join(args.out_root, 'command_line.txt'), headers={'x-amz-request-payer':'requester'})
             key.set_contents_from_string(' '.join(sys.argv) + '\n', headers={'x-amz-request-payer':'requester'})
             #save the spearmint config file to S3
-            key = bucket.new_key(os.path.join(args.out_root, 'config.json'))
-            key.set_contents_from_filename(args.spearmint_config_path)
+            key = bucket.new_key(os.path.join(args.out_root, 'config.json'), headers={'x-amz-request-payer':'requester'})
+            key.set_contents_from_filename(args.spearmint_config_path, headers={'x-amz-request-payer':'requester'})
         elif not args.restart:
             raise Exception('Error: Output directory already exists.')
         else:
@@ -86,12 +86,12 @@ if __name__ == "__main__":
             num_restart = len(s3_library.glob_keys(args.run_bucket, os.path.join(args.out_root, 'command_line*')))
 #            restart_iter = len(s3_library.glob_keys(args.run_bucket, os.path.join(args.out_root, 'hypersearch*/command_line.txt'))) + 1
             restart_iter = max([int(elt.name.split('/')[-2].split('_')[1].lstrip('0')) for elt in s3_library.glob_keys(args.run_bucket, os.path.join(args.out_root, 'hypersearch*/command_line.txt'))]) + 1
-            bucket = s3_library.S3.get_bucket(args.run_bucket)
-            bucket.new_key(os.path.join(args.out_root, 'restart{!s}_at_iter{:05}'.format(num_restart, restart_iter))).set_contents_from_string('')
-            key = bucket.new_key(os.path.join(args.out_root, 'command_line{!s}.txt'.format(num_restart)))
+            bucket = s3_library.S3.get_bucket(args.run_bucket, headers={'x-amz-request-payer':'requester'})
+            bucket.new_key(os.path.join(args.out_root, 'restart{!s}_at_iter{:05}'.format(num_restart, restart_iter)), headers={'x-amz-request-payer':'requester'}).set_contents_from_string('', headers={'x-amz-request-payer':'requester'})
+            key = bucket.new_key(os.path.join(args.out_root, 'command_line{!s}.txt'.format(num_restart)), headers={'x-amz-request-payer':'requester'})
             key.set_contents_from_string(' '.join(sys.argv) + '\n', headers={'x-amz-request-payer':'requester'})
-            key = bucket.new_key(os.path.join(args.out_root, 'config{!s}.json'.format(num_restart)))
-            key.set_contents_from_filename(args.spearmint_config_path)
+            key = bucket.new_key(os.path.join(args.out_root, 'config{!s}.json'.format(num_restart)), headers={'x-amz-request-payer':'requester'})
+            key.set_contents_from_filename(args.spearmint_config_path, headers={'x-amz-request-payer':'requester'})
 
 
     #save the root parameters as a pickle file

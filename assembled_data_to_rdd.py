@@ -75,7 +75,7 @@ def read_in_part(part_url, data_shape, col_coords, coords_bed=None, tmpdir='/dat
         to_read = p.stdout
     else:
         local_copy = os.path.join(tmpdir, os.path.basename(part_url))
-        cmd = ['aws', 's3', 'cp', part_url, local_copy]
+        cmd = ['aws', 's3', 'cp', part_url, local_copy, '--request-payer']
         subprocess.check_call(cmd)
         to_read = smart_open.smart_open(local_copy, 'r')
     with to_read as lines_in:
