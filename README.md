@@ -5,7 +5,7 @@ This repository contains the code to run PREDICTD, a program to model the epigen
 
 ## Installation
 
-PREDICTD is most readily available on Amazon Web Services as part of an Amazon Machine Image (AMI) called PREDICTD (ami-9aca5de2).
+PREDICTD is most readily available on Amazon Web Services as part of an Amazon Machine Image (AMI) called PREDICTD (ami-9962f2e1).
 
 ## Instructions and Tutorials
 
