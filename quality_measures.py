@@ -348,4 +348,4 @@ if __name__ == "__main__":
             out_key_full = os.path.join(os.path.dirname(out_key), out_name)
         else:
             out_bucket, out_key_full = s3_library.parse_s3_url(args.out_name)
-        s3_library.S3.get_bucket(out_bucket, headers={'x-amz-request-payer':'requester'}).new_key(out_key_full, headers={'x-amz-request-payer':'requester'}).set_contents_from_filename(os.path.join(working_dir, out_name), headers={'x-amz-request-payer':'requester'})
+        s3_library.S3.get_bucket(out_bucket, headers={'x-amz-request-payer':'requester'}).new_key(out_key_full).set_contents_from_filename(os.path.join(working_dir, out_name), headers={'x-amz-request-payer':'requester'})

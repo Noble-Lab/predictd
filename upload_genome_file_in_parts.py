@@ -50,11 +50,11 @@ if __name__ == "__main__":
         fmap_w_coords = pickle.load(pickle_in)
     data_idx = {fmap_w_coords[i][0]:(fmap_w_coords[i][1], fmap_w_coords[i][2], tuple([int(elt) for elt in fmap_w_coords[i][3:5]])) 
                 for i in range(fmap_w_coords.shape[0])}
-    data_idx_key = out_bucket.new_key(os.path.join(os.path.dirname(key_txt), 'data_idx.pickle'), headers={'x-amz-request-payer':'requester'})
+    data_idx_key = out_bucket.new_key(os.path.join(os.path.dirname(key_txt), 'data_idx.pickle'))
     data_idx_key.set_contents_from_string(pickle.dumps(data_idx), headers={'x-amz-request-payer':'requester'})
 
     #save the column coordinates to s3
-    coord_key = out_bucket.new_key(key_txt + '.coord_order.pickle', headers={'x-amz-request-payer':'requester'})
+    coord_key = out_bucket.new_key(key_txt + '.coord_order.pickle')
     coord_key.set_contents_from_filename(args.input_bdg.replace('.bdg.gz', '.coord_order.pickle'), headers={'x-amz-request-payer':'requester'})
 
     #save the data in parts

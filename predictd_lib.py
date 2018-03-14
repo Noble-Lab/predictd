@@ -464,7 +464,7 @@ def print_iter_errs(iter_errs, out_bucket, out_key,
     for idx, elt in enumerate(iter_errs):
         iter_errs_str += ('\t'.join([str(idx)] + [str(elt[i]) for i in range(len(elt))]) + '\n')
     bucket = s3_library.S3.get_bucket(out_bucket, headers={'x-amz-request-payer':'requester'})
-    key = bucket.new_key(out_key, headers={'x-amz-request-payer':'requester'})
+    key = bucket.new_key(out_key)
     key.set_contents_from_string(iter_errs_str, headers={'x-amz-request-payer':'requester'})
 
 def _calc_mse_helper(gtotal_elt, ct_assay, ct_assay_bias, ri, rbi, subsets=None):
@@ -2446,7 +2446,7 @@ def _compile_bdg_and_upload(ctassay_part, out_bucket, out_root, bdg_path, make_p
                 bedGraphToBigWig(out_bdg, chrom_sizes_path, out_bw)
                 os.remove(out_bdg)
 
-            out_key = s3_library.S3.get_bucket(out_bucket, headers={'x-amz-request-payer':'requester'}).new_key(os.path.join(out_root, os.path.basename(out_bw)), headers={'x-amz-request-payer':'requester'})
+            out_key = s3_library.S3.get_bucket(out_bucket, headers={'x-amz-request-payer':'requester'}).new_key(os.path.join(out_root, os.path.basename(out_bw)))
             out_key.set_contents_from_filename(out_bw, headers={'x-amz-request-payer':'requester'})
             if make_public is True:
                 out_key.make_public()
@@ -2484,7 +2484,7 @@ def _compile_bdg_batch_and_upload(ctassay_part, out_bucket, out_root, bdg_path, 
             chain = unixcat[bdg_paths] | unixpaste[os.path.join(tmpdir, 'bdg_coords.txt'), '-'] | bedtools['intersect', '-wa', '-a', 'stdin', '-b', chrom_bed_path, '-f', '1.0'] | unixgzip > out_bdg
             chain()
 
-            out_key = s3_library.S3.get_bucket(out_bucket, headers={'x-amz-request-payer':'requester'}).new_key(os.path.join(out_root, ct_name, assay_name, os.path.basename(out_bdg)), headers={'x-amz-request-payer':'requester'})
+            out_key = s3_library.S3.get_bucket(out_bucket, headers={'x-amz-request-payer':'requester'}).new_key(os.path.join(out_root, ct_name, assay_name, os.path.basename(out_bdg)))
             out_key.set_contents_from_filename(out_bdg, headers={'x-amz-request-payer':'requester'})
             os.remove(out_bdg)
             local['rm']('-f', bdg_paths)
@@ -2517,7 +2517,7 @@ def _compiled_bdg_batches_to_bigwig(ctassay, bdg_batches_url_glob, out_bw_url, m
     bedGraphToBigWig(compiled_bdg, chrom_sizes_path, out_bw)
 
     out_bucket_txt, out_key_txt = s3_library.parse_s3_url(out_bw_url.format(ct_name, assay_name, 'imp'))
-    out_key = s3_library.S3.get_bucket(out_bucket_txt, headers={'x-amz-request-payer':'requester'}).new_key(out_key_txt, headers={'x-amz-request-payer':'requester'})
+    out_key = s3_library.S3.get_bucket(out_bucket_txt, headers={'x-amz-request-payer':'requester'}).new_key(out_key_txt)
     out_key.set_contents_from_filename(out_bw, headers={'x-amz-request-payer':'requester'})
     if make_public is True:
         out_key.make_public()

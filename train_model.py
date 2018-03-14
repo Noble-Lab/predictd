@@ -229,7 +229,7 @@ if __name__ == "__main__":
     if args.data_url.startswith('s3'):
         if not s3_library.glob_keys(args.run_bucket, os.path.join(args.out_root, 'command_line.txt')):
             bucket = s3_library.S3.get_bucket(args.run_bucket, headers={'x-amz-request-payer':'requester'})
-            key = bucket.new_key(os.path.join(args.out_root, 'command_line.txt'), headers={'x-amz-request-payer':'requester'})
+            key = bucket.new_key(os.path.join(args.out_root, 'command_line.txt'))
             key.set_contents_from_string(' '.join(sys.argv) + '\n', headers={'x-amz-request-payer':'requester'})
         elif not args.restart:
             raise Exception('Error: Output directory already exists.')

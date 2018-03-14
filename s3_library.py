@@ -59,7 +59,7 @@ def set_pickle_s3(bucketname, keyname, obj):
         bucket = S3.create_bucket(bucketname, headers={'x-amz-request-payer':'requester'})
     key = bucket.get_key(keyname, headers={'x-amz-request-payer':'requester'})
     if key is None:
-        key = bucket.new_key(keyname, headers={'x-amz-request-payer':'requester'})
+        key = bucket.new_key(keyname)
 #    key.set_contents_from_string(pickle.dumps(obj), headers={'x-amz-request-payer':'requester'})
     with NamedTemporaryFile(dir=TMPDIR) as tmp:
         pickle.dump(obj, tmp)
