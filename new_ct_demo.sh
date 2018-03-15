@@ -4,7 +4,7 @@
 filemap_url=$1
 #e.g. s3://data-tdurham/fetalspinalcord_analysis/
 out_root_url=$2
-working_dir=/data/tmp_lowdata
+working_dir=/data/tmp
 
 if [ -z "$filemap_url" ] || [ -z $out_root_url ]
 then

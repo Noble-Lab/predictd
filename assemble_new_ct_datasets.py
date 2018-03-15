@@ -293,8 +293,9 @@ if __name__ == "__main__":
     print('Saving a copy of the file map with tensor coordinates in Python pickle format.')
     fmap_w_coords = numpy.hstack([filemap, coords])
     fmap_w_coords_path = os.path.splitext(args.file_map)[0] + '.w_coords.pickle'
-    with smart_open.smart_open(fmap_w_coords_path, 'wb') as out:
-        out.write(pickle.dumps(fmap_w_coords))
+#don't write to the s3://predictd bucket (most users don't have write permissions
+#    with smart_open.smart_open(fmap_w_coords_path, 'wb') as out:
+#        out.write(pickle.dumps(fmap_w_coords))
     #also save a local copy so that the upload script can transform it to data_idx
     with open(os.path.join(args.working_dir, os.path.basename(fmap_w_coords_path)), 'wb') as out:
         pickle.dump(fmap_w_coords, out)
