@@ -1,6 +1,6 @@
 # PREDICTD
 
-Durham, Timothy J., Maxwell W. Libbrecht, J. Jeffry Howbert, Jeff Bilmes, and William Stafford Noble. ‚ÄúPREDICTD PaRallel Epigenomics Data Imputation with Cloud-Based Tensor Decomposition.‚Äù Nature Communications 9, no. 1 (April 11, 2018): 1402. https://doi.org/10.1038/s41467-018-03635-9.
+Durham, TJ., Libbrecht, MW., Howbert, JJ., Bilmes, J., and Noble, WS. ìPREDICTD PaRallel Epigenomics Data Imputation with Cloud-Based Tensor Decomposition.î Nature Communications 9, no. 1 (April 11, 2018): 1402. https://doi.org/10.1038/s41467-018-03635-9.
 
 This repository contains the code to run PREDICTD, a program to model the epigenome based on the Encyclopedia of DNA Elements and the NIH Roadmap Epigenomics Project data and to impute the results of epigenomics experiments that have not yet been done. A computing environment for running this code is distributed as an Amazon Machine Image, and it is easiest to get the code up and running by following the steps in the tutorial below to start a cluster in Amazon Web Services. This tutorial will demonstrate how to train the model on the Roadmap Consolidated data set used in the paper. The model can also be used to impute data for a new cell type, and there will be another tutorial for that use case coming soon. If you do not want to run the model, but simply want to get the imputed data from the paper, you will be able to download that data in bigwig format from the ENCODE project website soon.
 
