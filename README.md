@@ -10,7 +10,7 @@ PREDICTD is most readily available on Amazon Web Services as part of an Amazon M
 
 ## Instructions and Tutorials
 
-For more examples and information about how to run PREDICTD, please see the wiki page of this GitHub repository (https://github.com/tdurham86/PREDICTD/wiki).
+For more examples and information about how to run PREDICTD, please see the wiki page of this repository (https://bitbucket.org/noblelab/predictd/wiki/Home).
 
 ## License
 
