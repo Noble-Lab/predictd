@@ -8,6 +8,8 @@ This repository contains the code to run PREDICTD, a program to model the epigen
 
 PREDICTD is most readily available on Amazon Web Services as part of an Amazon Machine Image (AMI) called PREDICTD (ami-858012fd).
 
+**Update 2023-12-15:** The s3://predictd bucket is being deprecated, and the data stored there has been archived in a Harvard Dataverse Dataset (doi:10.7910/DVN/HNUUSJ). It is still publicly available, but the serialized forms of the Spark Resilient Distributed Datasets (RDDs) have been compressed into gzipped tar archives. Going forward, to run the PREDICTD code against the tutorial data sets or to load the PREDICTD models into a Spark instance, please download the relevant files from the Dataverse Dataset, decompress and untar the RDD files (\*.RDD.pickle), upload them into an AWS S3 bucket, and point the code to read from that new S3 bucket.
+
 ## Instructions and Tutorials
 
 For more examples and information about how to run PREDICTD, please see the wiki page of this repository (https://bitbucket.org/noblelab/predictd/wiki/Home).
